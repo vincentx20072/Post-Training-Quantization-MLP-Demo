@@ -1,0 +1,48 @@
+{
+  "environment": {
+    "timestamp": "2026-09-12T17:59:13.984213+00:00",
+    "os": "Windows 11",
+    "python": "3.13.7",
+    "torch": "2.13.0+cpu",
+    "dataset": "Fashion-MNIST",
+    "test_examples": 10000
+  },
+  "claim": {
+    "min_size_reduction": 0.7,
+    "max_accuracy_loss_pp": 1.0
+  },
+  "results": {
+    "fp32": {
+      "precision_bits": 32,
+      "scheme": "float32",
+      "weight_storage_bytes": 939008,
+      "bias_storage_bytes": 1576,
+      "accuracy": 0.8832,
+      "accuracy_loss_pp": 0.0,
+      "size_reduction": 0.0,
+      "claim_satisfied": false
+    },
+    "int8": {
+      "precision_bits": 8,
+      "scheme": "8-bit symmetric, per-channel",
+      "weight_storage_bytes": 236328,
+      "scale_metadata_bytes": 1576,
+      "bias_storage_bytes": 1576,
+      "accuracy": 0.883,
+      "accuracy_loss_pp": 0.019999999999997797,
+      "size_reduction": 0.74832163304253,
+      "claim_satisfied": true
+    },
+    "aggressive": {
+      "precision_bits": 4,
+      "scheme": "4-bit symmetric, per-tensor",
+      "weight_storage_bytes": 117388,
+      "scale_metadata_bytes": 12,
+      "bias_storage_bytes": 1576,
+      "accuracy": 0.8713,
+      "accuracy_loss_pp": 1.1900000000000022,
+      "size_reduction": 0.8749872205561614,
+      "claim_satisfied": false
+    }
+  }
+}
