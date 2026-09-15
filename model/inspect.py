@@ -1,7 +1,7 @@
 """Make quantization error visible for one layer.
 
-    python -m tinyquant.inspect                 # inspect fc1 under the aggressive config
-    python -m tinyquant.inspect --layer fc2 --config int8
+    python -m model.inspect                 # inspect fc1 under the int4 (aggressive) config
+    python -m model.inspect --layer fc2 --config int8
 
 Shows, for the chosen layer and configuration: the FP32 weight range, the scale(s), the integer
 range actually used, a few example weights alongside their reconstructed values, and the mean/max
@@ -14,12 +14,12 @@ import argparse
 
 import torch
 
-from tinyquant.quantize import CONFIGS
-from tinyquant.scales import quantization_error, quantize
-from tinyquant.train import load_model
+from model.quantize import CONFIGS
+from model.scales import quantization_error, quantize
+from model.train import load_model
 
 
-def inspect_layer(layer_name: str = "fc1", config: str = "aggressive", n_examples: int = 8) -> dict:
+def inspect_layer(layer_name: str = "fc1", config: str = "int4", n_examples: int = 8) -> dict:
     model = load_model()
     layers = model.linear_layers
     if layer_name not in layers:
@@ -51,7 +51,7 @@ def inspect_layer(layer_name: str = "fc1", config: str = "aggressive", n_example
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--layer", default="fc1", help="fc1 | fc2 | fc3")
-    ap.add_argument("--config", default="aggressive", choices=list(CONFIGS))
+    ap.add_argument("--config", default="int4", choices=list(CONFIGS))
     ap.add_argument("--examples", type=int, default=8)
     args = ap.parse_args()
     inspect_layer(args.layer, args.config, args.examples)

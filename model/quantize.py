@@ -5,16 +5,17 @@ PTQ happens *after* training has finished:
     train -> final FP32 weights -> quantize -> evaluate
 
 Nothing is re-trained here. Each ``Linear`` layer's weight matrix is quantized with the symmetric
-scheme in :mod:`tinyquant.scales`; biases (a few hundred values, negligible for storage) are kept in
+scheme in :mod:`model.scales`; biases (a few hundred values, negligible for storage) are kept in
 FP32, which is standard for weight-only PTQ. Two named configurations are provided:
 
 * ``int8``       - 8-bit, **per-output-channel** scales (one scale per row of the weight matrix).
                    A separate scale per channel fits each row's range tightly, so the error is small.
-* ``aggressive`` - 4-bit, a **single per-tensor** scale for the whole weight matrix. Four bits give
-                   only 15 grid points, and one global scale must cover every row's range at once,
-                   so weights in narrow-range rows are quantized very coarsely. This is a legitimate,
-                   deliberately low-flexibility configuration - no weights are corrupted; the larger
-                   error is the honest consequence of fewer bits and coarser scaling.
+* ``int4``       - 4-bit, a **single per-tensor** scale for the whole weight matrix (the aggressive,
+                   maximum-compression setting). Four bits give only 15 grid points, and one global
+                   scale must cover every row's range at once, so weights in narrow-range rows are
+                   quantized very coarsely. This is a legitimate, deliberately low-flexibility
+                   configuration - no weights are corrupted; the larger error is the honest
+                   consequence of fewer bits and coarser scaling.
 
 To *evaluate* a quantized model we build the same MLP architecture and load the **dequantized**
 weights (``q * scale``). The network then runs with exactly the reconstructed values the integer
@@ -28,13 +29,13 @@ from dataclasses import dataclass
 
 import torch
 
-from tinyquant.model import MLP
-from tinyquant.scales import QuantizedTensor, quantize
+from model.model import MLP
+from model.scales import QuantizedTensor, quantize
 
 # name -> (bits, axis)  ;  axis=0 per-output-channel, None per-tensor
 CONFIGS: dict[str, tuple[int, int | None]] = {
     "int8": (8, 0),          # conservative: 8-bit, per-channel
-    "aggressive": (4, None),  # aggressive: 4-bit, single per-tensor scale
+    "int4": (4, None),       # aggressive: 4-bit, single per-tensor scale
 }
 
 

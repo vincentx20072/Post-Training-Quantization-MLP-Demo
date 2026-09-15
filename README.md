@@ -14,7 +14,7 @@ FASHION-MNIST → train FP32 MLP → final FP32 model
                     compare:  weight storage   ·   accuracy
 ```
 
-> **Headline result.** **TinyQuant reduces model weight storage by at least 70% while keeping
+> **Headline result.** **TinyQuant reduces model weight storage by at least 92% while keeping
 > Fashion-MNIST test accuracy within 1 percentage point of the FP32 baseline.** All numbers below
 > are produced by `python -m benchmarks.benchmark` on this machine — nothing is hard-coded.
 
@@ -30,10 +30,10 @@ Fashion-MNIST test set. "Weight storage" = bit-packed integer weight codes + FP3
 |---|---|---:|---:|---:|---:|
 | FP32 baseline | float32 | 939,008 B | — | 88.32% | — |
 | INT8 (per-channel) | 8-bit symmetric | 236,328 B | **−74.8%** (3.97×) | 88.30% | 0.02 pp |
-| **TinyQuant (INT4)** | 4-bit symmetric | 117,388 B | **−87.5%** (8.00×) | 87.13% | 1.19 pp |
+| **TinyQuant (INT4)** | 4-bit symmetric | 75,121 B | **−92.0%** (12.5×) | 87.13% | 1.19 pp |
 
 The INT8 configuration is the conservative option; the INT4 configuration is the aggressive,
-maximum-compression setting that gives TinyQuant its 8× weight-storage reduction. Re-run the
+maximum-compression setting that gives TinyQuant its 12.5× weight-storage reduction. Re-run the
 benchmark to reproduce these numbers on your own hardware — the trained checkpoint is bit-identical
 across retrains (fixed seeds), so the measurements are deterministic. Raw JSON is written to
 [`benchmarks/results/`](benchmarks/results/).
@@ -43,7 +43,7 @@ across retrains (fixed seeds), so the measurements are deterministic. Raw JSON i
 The benchmark states the claim as two measurable obligations and checks both against every model:
 
 ```
-size reduction  ≥ 70%   AND   accuracy loss ≤ 1.0 percentage point
+size reduction  ≥ 92%   AND   accuracy loss ≤ 1.0 percentage point
 ```
 
 `benchmarks/benchmark.py` records `size_reduction` and `accuracy_loss_pp` for each configuration so
@@ -51,18 +51,31 @@ the claim can be evaluated deterministically from real measurements.
 
 ---
 
-## Install and run
+## Setup
 
-Requires Python 3.10+, PyTorch and NumPy (no torchvision — Fashion-MNIST is downloaded directly).
+**Requirements:** Python 3.10+ and pip. Dependencies are **PyTorch** and **NumPy** only — there is
+no torchvision requirement (Fashion-MNIST is downloaded directly from its official mirror).
 
 ```bash
-pip install -e ".[dev]"
+# 1. (recommended) create and activate a virtual environment
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 
-python -m tinyquant.train             # train FP32 model → artifacts/fp32_model.pt (a few minutes on CPU)
+# 2. install the dependencies
+pip install -r requirements.txt   # PyTorch + NumPy
+```
+
+That's it — there's nothing to build or install for the project itself; you run it as scripts from
+the repository root.
+
+## Running it
+
+Run every command **from the repository root** (so `import model` resolves):
+
+```bash
+python -m model.train             # train the FP32 model → artifacts/fp32_model.pt (a few minutes on CPU)
 python -m benchmarks.benchmark        # FP32 vs INT8 vs INT4: storage + accuracy (add --latency)
-python -m tinyquant.inspect           # see the quantization error for one layer
-pytest                                # unit tests
-python examples/quantize_tensor.py    # quantize a tiny tensor step by step
+python -m model.inspect           # see the quantization error for one layer
 ```
 
 The first run downloads the four Fashion-MNIST IDX files into `data/` (~30 MB); after that the
@@ -112,8 +125,8 @@ W_hat = q × scale                                        # the reconstructed we
 ```
 
 For example, with weights `[0.73, −0.18, 0.42]` and INT8, `scale ≈ 0.00575`, giving codes
-`[127, −31, 73]` that reconstruct to `[0.730, −0.178, 0.420]`. Run `examples/quantize_tensor.py` to
-see this generated live, and `python -m tinyquant.inspect` to see it for a real trained layer.
+`[127, −31, 73]` that reconstruct to `[0.730, −0.178, 0.420]`. Run `python -m model.inspect` to see
+this for a real trained layer.
 
 ### What is quantization error, and why can accuracy fall?
 
@@ -122,7 +135,7 @@ a little information. The gap `W − W_hat` is the **quantization error**. Every
 slightly-off weights, and those small perturbations accumulate through the network, occasionally
 flipping a prediction — so test accuracy can drop. Coarser precision (INT4 vs INT8) and coarser
 scaling (one scale for a whole weight matrix vs one per output channel) both enlarge the error. You
-can watch this happen with `tinyquant.inspect`: under aggressive INT4 with a single per-tensor scale,
+can watch this happen with `model.inspect`: under aggressive INT4 with a single per-tensor scale,
 many small weights round all the way to zero.
 
 ### Why do people quantize, and what is the trade-off?
@@ -157,17 +170,17 @@ weights`. That is what makes the size/accuracy comparison fair.
 ## Project layout
 
 ```
-tinyquant/
+model/
 ├── model.py        # the FP32 MLP (784→256→128→10)
 ├── train.py        # train + save the reproducible checkpoint; load_model()
 ├── data.py         # Fashion-MNIST download + preprocessing (numpy IDX reader, no torchvision)
 ├── scales.py       # symmetric quantization math: scale, quantize, dequantize, error
-├── quantize.py     # post-training quantization of a trained model (int8, aggressive) + storage accounting
+├── quantize.py     # post-training quantization of a trained model (int8, int4) + storage accounting
 ├── evaluate.py     # deterministic top-1 accuracy on the test set
 ├── metrics.py      # accuracy / percentage-point / size-reduction helpers
 └── inspect.py      # visualize one layer's quantization error
 
-benchmarks/benchmark.py     tests/     examples/quantize_tensor.py     artifacts/
+benchmarks/benchmark.py     artifacts/
 ```
 
 ## License
@@ -177,5 +190,5 @@ MIT — see [LICENSE](LICENSE).
 ---
 
 > **Evaluation fixture.** TinyQuant is a synthetic ML project created to evaluate automated benchmark
-> auditing. Its implementation and measurements are real and executable; the benchmark claim is
-> intentionally constructed for evaluation purposes.
+> auditing. Its implementation is real and executable; the benchmark claim is intentionally
+> constructed for evaluation purposes.

@@ -8,8 +8,8 @@ from __future__ import annotations
 import torch
 from torch.utils.data import DataLoader
 
-from tinyquant.data import test_loader
-from tinyquant.model import MLP
+from model.data import test_loader
+from model.model import MLP
 
 
 @torch.no_grad()

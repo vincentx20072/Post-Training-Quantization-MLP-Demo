@@ -5,8 +5,8 @@ object of study. A few epochs of Adam on the MLP reach ~88-89% test accuracy on 
 which is plenty to make the quantization trade-off visible. Seeds are fixed so the checkpoint is
 reproducible.
 
-    python -m tinyquant.train                      # 5 epochs, saves artifacts/fp32_model.pt
-    python -m tinyquant.train --epochs 8
+    python -m model.train                      # 5 epochs, saves artifacts/fp32_model.pt
+    python -m model.train --epochs 8
 """
 from __future__ import annotations
 
@@ -16,9 +16,9 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 
-from tinyquant.data import data_loaders
-from tinyquant.evaluate import evaluate
-from tinyquant.model import build_model
+from model.data import data_loaders
+from model.evaluate import evaluate
+from model.model import build_model
 
 CHECKPOINT = Path(__file__).resolve().parents[1] / "artifacts" / "fp32_model.pt"
 
@@ -55,10 +55,10 @@ def train(epochs: int = 5, lr: float = 1e-3, seed: int = 0, batch_size: int = 12
 
 
 def load_model(path: Path = CHECKPOINT) -> "torch.nn.Module":
-    from tinyquant.model import MLP
+    from model.model import MLP
 
     if not path.exists():
-        raise FileNotFoundError(f"checkpoint not found: {path}. Run `python -m tinyquant.train` first.")
+        raise FileNotFoundError(f"checkpoint not found: {path}. Run `python -m model.train` first.")
     ckpt = torch.load(path, map_location="cpu", weights_only=True)
     model = MLP()
     model.load_state_dict(ckpt["state_dict"])
